@@ -1,69 +1,55 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useMemo } from 'react';
+import QRCodeSVG from 'react-qr-code';
 
 interface QRCodeProps {
   value: string;
   size?: number;
-  bgColor?: string;
-  fgColor?: string;
+  className?: string;
 }
 
-const QRCode = ({ value, size = 200, bgColor = "#ffffff", fgColor = "#000000" }: QRCodeProps) => {
-  const qrContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // This is a simple placeholder - in a real app you'd use a proper QR code library
-    // Dynamically load a QR code library to generate the actual QR code
-    const loadQRCode = async () => {
-      if (qrContainerRef.current) {
-        // For the demo, we're just showing a placeholder QR code
-        // In a real implementation, you'd render an actual QR code here
-        qrContainerRef.current.innerHTML = '';
-        
-        // Create a grid to simulate a QR code
-        const qrSize = 5; // 5x5 grid
-        const cellSize = size / qrSize;
-        
-        const grid = document.createElement('div');
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = `repeat(${qrSize}, 1fr)`;
-        grid.style.width = `${size}px`;
-        grid.style.height = `${size}px`;
-        
-        // Generate a fake but consistent pattern based on the URL
-        const hash = [...value].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        
-        for (let i = 0; i < qrSize * qrSize; i++) {
-          const cell = document.createElement('div');
-          cell.style.width = `${cellSize}px`;
-          cell.style.height = `${cellSize}px`;
-          
-          // Make a pattern that looks like a QR code
-          const shouldFill = (
-            // Always have the corners filled (position markers)
-            i === 0 || i === qrSize - 1 || i === qrSize * (qrSize - 1) || i === qrSize * qrSize - 1 ||
-            // Fill based on hash to make it look random but consistent
-            (hash + i) % 3 === 0
-          );
-          
-          if (shouldFill || i < qrSize || i % qrSize === 0 || i % qrSize === qrSize - 1 || i >= qrSize * (qrSize - 1)) {
-            cell.style.backgroundColor = fgColor;
-          } else {
-            cell.style.backgroundColor = bgColor;
-          }
-          
-          grid.appendChild(cell);
-        }
-        
-        qrContainerRef.current.appendChild(grid);
+const QRCode = ({ value, size = 200, className = '' }: QRCodeProps) => {
+  // Generate a simple overlay pattern based on the value
+  const overlayCells = useMemo(() => {
+    const cells = [];
+    const grid = 8; // 8x8 overlay grid
+    const cellSize = size / grid;
+    const hash = Array.from(value).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    for (let i = 0; i < grid * grid; i++) {
+      const shouldColor = (hash + i) % 11 === 0;
+      if (shouldColor) {
+        cells.push(
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              width: cellSize,
+              height: cellSize,
+              top: Math.floor(i / grid) * cellSize,
+              left: (i % grid) * cellSize,
+              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+              pointerEvents: 'none',
+            }}
+          />
+        );
       }
-    };
+    }
+    return cells;
+  }, [value, size]);
 
-    loadQRCode();
-  }, [value, size, bgColor, fgColor]);
-
-  return <div ref={qrContainerRef} style={{ width: size, height: size }} />;
+  return (
+    <div
+      className={`relative ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <QRCodeSVG value={value} size={size} bgColor="#fff" fgColor="#000" level="H" />
+      {/* Overlay pattern */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: size, height: size, pointerEvents: 'none' }}>
+        {overlayCells}
+      </div>
+    </div>
+  );
 };
 
 export default QRCode;
